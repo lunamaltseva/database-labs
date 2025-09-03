@@ -1,0 +1,44 @@
+lunafeverenn@pop-os:~$ psql -h localhost -p 5432 -U postgres -d postgres
+Password for user postgres: 
+psql (14.18 (Ubuntu 14.18-0ubuntu0.22.04.1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+Type "help" for help.
+
+postgres=# CREATE TABLE students (
+postgres(# id SERIAL PRIMARY KEY,
+postgres(# name VARCHAR(100),
+postgres(# email VARCHAR(100),
+postgres(# faculty VARCHAR(100)
+postgres(# );
+CREATE TABLE
+postgres=# INSERT INTO students (name, email, faculty) VALUES ('Luna', 'md12366@auca.kg', 'COM-25');
+INSERT 0 1
+postgres=# SELECT name, email FROM students WHERE faculty = 'COM-25';
+ name |      email      
+------+-----------------
+ Luna | md12366@auca.kg
+(1 row)
+
+postgres=# INSERT INTO students (name, email, faculty) VALUES ('Timur', 'tt13433@auca.kg', 'COM-24');
+INSERT 0 1
+postgres=# SELECT * FROM students;
+ id | name  |      email      | faculty 
+----+-------+-----------------+---------
+  1 | Luna  | md12366@auca.kg | COM-25
+  2 | Timur | tt13433@auca.kg | COM-24
+(2 rows)
+
+postgres=# SELECT name, email FROM students LIMIT 2;
+ name  |      email      
+-------+-----------------
+ Luna  | md12366@auca.kg
+ Timur | tt13433@auca.kg
+(2 rows)
+
+postgres=# SELECT name, email FROM students LIMIT 1;
+ name |      email      
+------+-----------------
+ Luna | md12366@auca.kg
+(1 row)
+
+postgres=# \q
