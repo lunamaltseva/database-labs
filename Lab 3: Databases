@@ -1,0 +1,16 @@
+lunafeverenn@pop-os:~$ psql -h localhost -p 5432 -U postgres -d postgres
+Password for user postgres: 
+psql (14.19 (Ubuntu 14.19-0ubuntu0.22.04.1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+Type "help" for help.
+
+postgres=# CREATE DATABASE university;
+CREATE DATABASE
+postgres=# \c university 
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+You are now connected to database "university" as user "postgres".
+university=# \c postgres
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+You are now connected to database "postgres" as user "postgres".
+postgres=# DROP DATABASE university
+postgres-# \q
