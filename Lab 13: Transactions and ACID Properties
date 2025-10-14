@@ -1,0 +1,329 @@
+DROP TABLE IF EXISTS user_preferences, users, audit_log,
+    order_items, orders, customers,
+    accounts, inventory, products, logs CASCADE;
+
+CREATE TABLE accounts (
+    account_id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    balance DECIMAL(10,2)
+);
+
+INSERT INTO accounts (name, balance) VALUES
+('Alice', 500.00),
+('Bob', 200.00);
+
+CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+INSERT INTO customers (name, email) VALUES
+('Alice Smith', 'alice@email.com'),
+('Bob Brown', 'bob@email.com');
+
+CREATE TABLE products (
+    product_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    price DECIMAL(10,2) CHECK (price >= 0)
+);
+
+INSERT INTO products (name, price) VALUES
+('Phone', 500.00),
+('Headphones', 50.00),
+('Monitor', 150.00);
+
+CREATE TABLE inventory (
+    product_id INT PRIMARY KEY REFERENCES products(product_id),
+    stock INT CHECK (stock >= 0)
+);
+
+INSERT INTO inventory (product_id, stock) VALUES
+(1, 10),
+(2, 20),
+(3, 5);
+
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(customer_id),
+    total DECIMAL(10,2)
+);
+
+CREATE TABLE order_items (
+    order_item_id SERIAL PRIMARY KEY,
+    order_id INT REFERENCES orders(order_id),
+    product_id INT REFERENCES products(product_id),
+    quantity INT CHECK (quantity > 0)
+);
+
+CREATE TABLE logs (
+    log_id SERIAL PRIMARY KEY,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE audit_log (
+    log_id SERIAL PRIMARY KEY,
+    action TEXT,
+    timestamp TIMESTAMP
+);
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+CREATE TABLE user_preferences (
+    preference_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    theme VARCHAR(50)
+);
+
+postgres=# BEGIN;
+postgres=# UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+postgres=# ROLLBACK;
+BEGIN
+UPDATE 1
+UPDATE 1
+ROLLBACK
+postgres=# TABLE accounts
+postgres-# ;
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice |  500.00
+          2 | Bob   |  200.00
+(2 rows)
+
+postgres=# BEGIN;
+postgres=# SELECT balance FROM accounts WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance - 500 WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance + 500 WHERE account_id = 2;
+postgres=# COMMIT;
+BEGIN
+ balance 
+---------
+  500.00
+(1 row)
+
+UPDATE 1
+UPDATE 1
+COMMIT
+postgres=# TABLE accounts;
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice |    0.00
+          2 | Bob   |  700.00
+(2 rows)
+
+postgres=# BEGIN;
+postgres=# SELECT balance FROM accounts WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance - 500 WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance + 500 WHERE account_id = 2;
+postgres=# COMMIT;
+BEGIN
+ balance 
+---------
+    0.00
+(1 row)
+
+UPDATE 1
+UPDATE 1
+COMMIT
+postgres=# TABLE accounts;
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice | -500.00
+          2 | Bob   | 1200.00
+(2 rows)
+
+postgres=# BEGIN;
+postgres=# INSERT INTO orders (customer_id, total) VALUES (1, 250.00);
+postgres=# INSERT INTO order_items (order_id, product_id, quantity) VALUES (1, 101, 2);
+postgres=# UPDATE inventory SET stock = stock - 2 WHERE product_id = 101;
+postgres=# COMMIT;
+BEGIN
+INSERT 0 1
+ERROR:  insert or update on table "order_items" violates foreign key constraint "order_items_product_id_fkey"
+DETAIL:  Key (product_id)=(101) is not present in table "products".
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+postgres=# BEGIN;
+INSERT INTO customers (name, email) VALUES ('John Doe', 'john@email.com');
+INSERT INTO orders (customer_id, total) VALUES (LASTVAL(), 100.00);
+COMMIT;
+BEGIN
+INSERT 0 1
+INSERT 0 1
+COMMIT
+postgres=# BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+SELECT * FROM accounts;
+COMMIT;
+BEGIN
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice | -500.00
+          2 | Bob   | 1200.00
+(2 rows)
+
+COMMIT
+postgres=# BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SELECT * FROM accounts WHERE balance > 1000;
+SELECT * FROM accounts WHERE balance > 1000;
+COMMIT;
+BEGIN
+ account_id | name | balance 
+------------+------+---------
+          2 | Bob  | 1200.00
+(1 row)
+
+ account_id | name | balance 
+------------+------+---------
+          2 | Bob  | 1200.00
+(1 row)
+
+COMMIT
+postgres=# BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT * FROM accounts WHERE balance > 1000;
+SELECT * FROM accounts WHERE balance > 1000;
+COMMIT;
+BEGIN
+ account_id | name | balance 
+------------+------+---------
+          2 | Bob  | 1200.00
+(1 row)
+
+ account_id | name | balance 
+------------+------+---------
+          2 | Bob  | 1200.00
+(1 row)
+
+COMMIT
+postgres=# BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SELECT * FROM accounts;
+UPDATE accounts SET balance = balance * 1.05;
+COMMIT;
+BEGIN
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice | -500.00
+          2 | Bob   | 1200.00
+(2 rows)
+
+UPDATE 2
+COMMIT
+postgres=# TABLE accounts;                                    
+ account_id | name  | balance 
+------------+-------+---------
+          1 | Alice | -525.00
+          2 | Bob   | 1260.00
+(2 rows)
+
+postgres=# BEGIN;
+postgres=# INSERT INTO customers (name, email) VALUES ('Alice', 'alice@email.com');
+postgres=# SAVEPOINT after_customer_insert;
+postgres=# INSERT INTO orders (customer_id, total) VALUES (1, 500.00);
+postgres=# ROLLBACK TO SAVEPOINT after_customer_insert;
+postgres=# INSERT INTO orders (customer_id, total) VALUES (1, 300.00);
+
+COMMIT;
+BEGIN
+INSERT 0 1
+SAVEPOINT
+INSERT 0 1
+ROLLBACK
+INSERT 0 1
+COMMIT
+postgres=# BEGIN;
+postgres=# INSERT INTO products (name, price) VALUES ('Laptop', 999.99);
+postgres=# SAVEPOINT sp1;
+postgres=# INSERT INTO products (name, price) VALUES ('Mouse', 25.99);
+postgres=# SAVEPOINT sp2;
+postgres=# INSERT INTO products (name, price) VALUES ('Invalid Product', -50.00);
+postgres=# ROLLBACK TO SAVEPOINT sp2;
+postgres=# INSERT INTO products (name, price) VALUES ('Keyboard', 79.99);
+
+COMMIT;
+BEGIN
+INSERT 0 1
+SAVEPOINT
+INSERT 0 1
+SAVEPOINT
+ERROR:  new row for relation "products" violates check constraint "products_price_check"
+DETAIL:  Failing row contains (6, Invalid Product, -50.00).
+ROLLBACK
+INSERT 0 1
+COMMIT
+postgres=# BEGIN;
+postgres=# INSERT INTO logs (message) VALUES ('Starting process');
+postgres=# SAVEPOINT process_start;
+postgres=# INSERT INTO logs (message) VALUES ('Process completed');
+postgres=# RELEASE SAVEPOINT process_start;
+
+COMMIT;
+BEGIN
+INSERT 0 1
+SAVEPOINT
+INSERT 0 1
+RELEASE
+COMMIT
+postgres=# BEGIN;
+postgres=# UPDATE inventory SET stock = stock - 1 WHERE product_id = 101;
+postgres=# INSERT INTO order_items (order_id, product_id, quantity) VALUES (1, 101, 1);
+postgres=# COMMIT;
+BEGIN
+UPDATE 0
+ERROR:  insert or update on table "order_items" violates foreign key constraint "order_items_order_id_fkey"
+DETAIL:  Key (order_id)=(1) is not present in table "orders".
+ROLLBACK
+postgres=# BEGIN;
+postgres=# DO $$
+postgres=# DECLARE
+postgres=# insufficient_funds EXCEPTION;
+postgres=# current_balance DECIMAL;
+postgres=# BEGIN
+postgres=# SELECT balance INTO current_balance FROM accounts WHERE account_id = 1;
+postgres=# IF current_balance < 100 THEN
+postgres=# RAISE insufficient_funds;
+postgres=# END IF;
+postgres=# UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+postgres=# UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+postgres=# EXCEPTION
+postgres=# WHEN insufficient_funds THEN
+postgres=# RAISE NOTICE 'Transaction failed: Insufficient funds';
+postgres=# ROLLBACK;
+postgres=# END $$;
+BEGIN
+ERROR:  type "exception" does not exist
+LINE 3:     insufficient_funds EXCEPTION;
+                               ^
+postgres=# BEGIN;
+postgres=# INSERT INTO orders (customer_id, total) VALUES (1, 1000.00);
+postgres=# SAVEPOINT before_items;
+postgres=# INSERT INTO order_items (order_id, product_id, quantity) 
+postgres=# VALUES (currval('orders_id_seq'), 101, 2);
+postgres=# INSERT INTO order_items (order_id, product_id, quantity) 
+postgres=# VALUES (currval('orders_id_seq'), 102, 1);
+postgres=# COMMIT;
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+postgres=# BEGIN;
+postgres=# INSERT INTO audit_log (action, timestamp) VALUES ('user_creation', NOW());
+postgres=# INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+postgres=# INSERT INTO user_preferences (user_id, theme) VALUES (currval('users_id_seq'), 'dark');
+postgres=# COMMIT;
+postgres=# INSERT INTO audit_log (action, timestamp) VALUES ('user_creation', NOW());
+postgres=# INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+COMMIT
+INSERT 0 1
+INSERT 0 1
+postgres=# 
