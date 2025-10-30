@@ -5,3 +5,5 @@ This is a repository created for the Database course at AUCA, maintained by Luna
 ---
 
 ## Final Project: SIDP aRTeMiS Modeling in Postgres
+
+I vow to mind all the deadlines that come with the final project and permit disciplinary action shall I fail to meet said deadlines.
